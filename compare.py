@@ -18,9 +18,18 @@ def parse_css_file(fname):
     return rules
 
 
+# Find and return font_css_token and content_token in supplied rule, if any.
 def parse_rule(rule):
     # print('type of rule: {}'.format(rule.type))
     is_content_token = False
+
+    tokens = []
+
+    for pt in rule.prelude:
+        if isinstance(pt, ast.IdentToken):
+            if pt.value in ['fa-eur', 'fa-euro']:
+                break
+
     for token in rule.content:
         if not isinstance(token, ast.WhitespaceToken):
             # print(token.value)
@@ -28,18 +37,18 @@ def parse_rule(rule):
                 is_content_token = True
             if isinstance(token, ast.StringToken) and is_content_token:
                 for pt in rule.prelude:
-                    if isinstance(pt, ast.IdentToken):
+                    if isinstance(pt, ast.IdentToken) and pt.value != 'before':
                         content_token = token
                         font_css_token = pt
-                        return font_css_token, content_token
-    return None, None
+                        tokens.append((font_css_token, content_token))
+    return tokens
 
 
 def get_font_map(rules):
     font_map = {}
     for rule in rules:
-        font_css_token, content_token = parse_rule(rule)
-        if font_css_token is not None:
+        tokens =  parse_rule(rule)
+        for font_css_token, content_token in tokens:
             # Convert char to entity. Commented out.
             # if not content_token.value.startswith('\\u'):
             #     content = '\\u{:04x}'.format(ord(token.value))
@@ -71,9 +80,10 @@ def generate_css(css_fname, gi_to_fa_map, font_map_fa):
         for glyph_name, fa_name in gi_to_fa_map.items():
             if fa_name in font_map_fa:
                 rule = font_map_fa[fa_name]
-                font_css_token, content_token = parse_rule(rule)
-                if font_css_token is not None:
+                tokens = parse_rule(rule)
+                for font_css_token, content_token in tokens:
                     font_css_token.value = glyph_name
+                if len(tokens) > 0:
                     print(rule.serialize(), file=f)
             else:
                 print('Warning: mapping fa name "{}" is not found for glyphicon: "{}"'.format(glyph_name, fa_name))
