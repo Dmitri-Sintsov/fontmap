@@ -57,16 +57,20 @@ def get_font_map(rules):
     return font_map
 
 
+rule_re = re.compile(r"\s*&\.(.+?)\s*\{", re.UNICODE)
+extend_re = re.compile(r"\s*@extend\s*\.(.*?);\s*", re.UNICODE)
+
+
 def parse_gi_to_fa_map(fname):
     gi_to_fa_map = {}
     with open(fname, 'r') as f:
         source_glyphicon = None
         for line in f:
-            result = re.findall(r"\s*&\.(.+?)\s*\{", line, re.UNICODE)
+            result = rule_re.findall(line)
             if len(result) > 0:
                 source_glyphicon = result[0]
             else:
-                result = re.findall(r"\s*@extend\s*\.(.*?);\s*", line, re.UNICODE)
+                result = extend_re.findall(line)
                 if len(result) > 0:
                     if source_glyphicon != None:
                         gi_to_fa_map[source_glyphicon] = result[0]
